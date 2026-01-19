@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard | Retail OS</title>
+    <style>
+        :root { --accent: #00d4ff; --bg: #0a0a0a; --card: #151515; --danger: #ff4d4d; }
+        body { font-family: sans-serif; background: var(--bg); color: #fff; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #222; text-align: center; flex: 1; margin: 0 10px; }
+        .stat-val { font-size: 2rem; font-weight: 900; color: var(--accent); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--card); border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #222; }
+        th { background: #111; color: #888; font-size: 0.8rem; text-transform: uppercase; }
+        
+        .btn-print { background: #fff; color: #000; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-right: 5px; }
+        .btn-delete { background: var(--danger); color: #fff; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .order-items { font-size: 0.85rem; color: #aaa; }
+        
+        .action-btns { display: flex; gap: 5px; }
+
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+
+    <div class="header no-print">
+        <div>
+            <h1 id="bizName">Loading Store...</h1>
+            <p id="bizHandle" style="color:var(--accent);"></p>
+        </div>
+        <div>
+            <button class="btn-print" onclick="loadDashboard()">🔄 REFRESH</button>
+            <button class="btn-print" onclick="window.print()">🖨️ PRINT PAGE</button>
+        </div>
+    </div>
+
+    <div class="header no-print">
+        <div class="stat-card">
+            <div class="stat-val" id="totalOrders">0</div>
+            <div style="font-size:0.7rem; color:#888;">TOTAL ORDERS</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" id="totalRevenue">0</div>
+            <div style="font-size:0.7rem; color:#888;">TOTAL REVENUE</div>
+        </div>
+    </div>
+
+    <h3 class="no-print">Recent Order Requests</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Items Ordered</th>
+                <th>Total</th>
+                <th class="no-print">Action</th>
+            </tr>
+        </thead>
+        <tbody id="orderTable"></tbody>
+    </table>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const handle = params.get('s');
+        const API = "https://webstore-api-m8sr.onrender.com/api";
+
+        async function loadDashboard() {
+            if(!handle) return alert("No store handle provided.");
+
+            try {
+                // 1. Load Store Config
+                const storeRes = await fetch(`${API}/store/${handle}`);
+                const store = await storeRes.json();
+                document.getElementById('bizName').innerText = store.businessName;
+                document.getElementById('bizHandle').innerText = `@${handle}`;
+
+                // 2. Load Sales
+                const salesRes = await fetch(`${API}/sales/${handle}`);
+                const sales = await salesRes.json();
+
+                document.getElementById('totalOrders').innerText = sales.length;
+                
+                let revenue = 0;
+                const table = document.getElementById('orderTable');
+                
+                if (sales.length === 0) {
+                    table.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px; color:#555;">No orders found yet.</td></tr>`;
+                    document.getElementById('totalRevenue').innerText = `${store.curr} 0`;
+                    return;
+                }
+
+                table.innerHTML = sales.map(s => {
+                    revenue += parseFloat(s.total_amount || 0);
+                    
+                    let itemsHtml = "";
+                    for (const key in s.order_data) {
+                        const item = s.order_data[key];
+                        itemsHtml += `• ${item.qty}x ${item.name}<br>`;
+                    }
+
+                    return `
+                    <tr id="row-${s.id}">
+                        <td>${new Date(s.created_at).toLocaleDateString()}<br><small>${new Date(s.created_at).toLocaleTimeString()}</small></td>
+                        <td class="order-items">${itemsHtml}</td>
+                        <td style="color:#00ff00; font-weight:bold;">${store.curr} ${s.total_amount}</td>
+                        <td class="no-print">
+                            <div class="action-btns">
+                                <button class="btn-print" onclick="printReceipt('${store.businessName}', '${new Date(s.created_at).toLocaleString()}', '${itemsHtml.replace(/<br>/g, '\\n')}', '${store.curr}', '${s.total_amount}')">RECEIPT</button>
+                                <button class="btn-delete" onclick="deleteOrder('${s.id}')">REMOVE</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                document.getElementById('totalRevenue').innerText = `${store.curr} ${revenue}`;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteOrder(orderId) {
+            if(!confirm("Are you sure you want to remove this order from your dashboard?")) return;
+
+            try {
+                const response = await fetch(`${API}/sales/delete/${orderId}`, {
+                    method: 'DELETE'
+                });
+
+                if(response.ok) {
+                    // Remove row from UI immediately
+                    document.getElementById(`row-${orderId}`).style.opacity = "0.3";
+                    document.getElementById(`row-${orderId}`).style.pointerEvents = "none";
+                    setTimeout(loadDashboard, 500); // Reload data
+                } else {
+                    alert("Error deleting order. Please try again.");
+                }
+            } catch (err) {
+                alert("Server error. Could not delete.");
+            }
+        }
+
+        function printReceipt(biz, date, items, curr, total) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <body style="font-family:monospace; padding:40px; text-align:center;">
+                    <h2>${biz}</h2>
+                    <p>${date}</p>
+                    <hr>
+                    <div style="text-align:left;">${items.replace(/\\n/g, '<br>')}</div>
+                    <hr>
+                    <h3>TOTAL: ${curr} ${total}</h3>
+                    <p>Thank you for your business!</p>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
