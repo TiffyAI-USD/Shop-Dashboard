@@ -6,29 +6,27 @@
     <title>Owner Dashboard | Retail OS</title>
     <style>
         :root { --accent: #00d4ff; --bg: #0a0a0a; --card: #151515; --danger: #ff4d4d; --success: #25d366; }
-        body { font-family: sans-serif; background: var(--bg); color: #fff; padding: 20px; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; padding: 20px; margin: 0; }
         
-        /* Fixed Header Alignment */
-        .header { border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; position: relative; }
-        .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
-        .biz-title { font-size: 1.8rem; font-weight: 800; margin: 0; color: #fff; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .biz-title { font-size: 1.8rem; font-weight: 800; margin: 0; }
         
-        .stats-container { display: flex; gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #222; text-align: center; flex: 1; }
-        .stat-val { font-size: 1.8rem; font-weight: 900; color: var(--accent); }
+        .stats-container { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #222; text-align: center; flex: 1; }
+        .stat-val { font-size: 2rem; font-weight: 900; color: var(--accent); }
         .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 5px; }
         
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid #222; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #1a1a1a; vertical-align: top; }
         th { background: #111; color: #555; font-size: 0.75rem; text-transform: uppercase; }
         
-        .btn-action { border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem; margin-right: 5px; }
+        .btn-action { border: none; padding: 10px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 0.75rem; margin-right: 5px; }
         .btn-wa { background: var(--success); color: #fff; }
         .btn-print { background: #fff; color: #000; }
         .btn-delete { background: var(--danger); color: #fff; }
         
-        .badge-total { color: #00ff00; font-weight: bold; font-family: monospace; font-size: 1rem; }
-        .order-items { font-size: 0.85rem; color: #aaa; line-height: 1.4; }
+        .badge-total { color: #00ff00; font-weight: 900; font-family: monospace; font-size: 1.1rem; }
+        .order-items { font-size: 0.85rem; color: #aaa; line-height: 1.5; }
 
         @media print { .no-print { display: none; } body { background: #fff; color: #000; } }
     </style>
@@ -36,15 +34,13 @@
 <body>
 
     <div class="header no-print">
-        <div class="header-top">
-            <div>
-                <h1 class="biz-title" id="bizName">Loading...</h1>
-                <p id="bizHandle" style="color:var(--accent); margin: 5px 0;"></p>
-            </div>
-            <div>
-                <button class="btn-action btn-print" onclick="loadDashboard()">🔄 REFRESH</button>
-                <button class="btn-action btn-print" onclick="window.print()">🖨️ LIST</button>
-            </div>
+        <div>
+            <h1 class="biz-title" id="bizName">Loading Store...</h1>
+            <p id="bizHandle" style="color:var(--accent); margin: 5px 0 0 0; font-weight: bold;"></p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-action btn-print" onclick="loadDashboard()">🔄 REFRESH</button>
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ LIST</button>
         </div>
     </div>
 
@@ -63,10 +59,10 @@
     <table>
         <thead>
             <tr>
-                <th width="120">Date</th>
+                <th width="140">Date</th>
                 <th>Items Ordered</th>
                 <th>Total</th>
-                <th class="no-print">Actions</th>
+                <th class="no-print" width="260">Actions</th>
             </tr>
         </thead>
         <tbody id="orderTable"></tbody>
@@ -77,18 +73,23 @@
         const handle = params.get('s');
         const API = "https://webstore-api-m8sr.onrender.com/api";
 
-        // Clean spacing for money
-        const formatMoney = (val) => parseFloat(val).toLocaleString('en-ZA', { minimumFractionDigits: 2 });
+        // Space formatting: 1000.50 -> 1 000.50
+        const formatMoney = (val) => {
+            return parseFloat(val).toLocaleString('en-ZA', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).replace(/,/g, ' ');
+        };
 
         async function loadDashboard() {
-            if(!handle) return alert("Missing Handle");
+            if(!handle) return alert("No store handle found in URL.");
             try {
-                const storeRes = await fetch(`${API}/store/${handle}`);
+                const storeRes = await fetch(API + "/store/" + handle);
                 const store = await storeRes.json();
                 document.getElementById('bizName').innerText = store.businessName;
-                document.getElementById('bizHandle').innerText = `@${handle}`;
+                document.getElementById('bizHandle').innerText = "@" + handle;
 
-                const salesRes = await fetch(`${API}/sales/${handle}`);
+                const salesRes = await fetch(API + "/sales/" + handle);
                 const sales = await salesRes.json();
 
                 document.getElementById('totalOrders').innerText = sales.length;
@@ -96,7 +97,8 @@
                 const table = document.getElementById('orderTable');
                 
                 if (sales.length === 0) {
-                    table.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px;">No orders.</td></tr>`;
+                    table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:#555;">No orders found yet.</td></tr>';
+                    document.getElementById('totalRevenue').innerText = store.curr + " 0.00";
                     return;
                 }
 
@@ -104,58 +106,58 @@
                     revenue += parseFloat(s.total_amount || 0);
                     
                     let itemsHtml = "";
-                    let rawText = "";
+                    let waText = "*RECEIPT: " + store.businessName.toUpperCase() + "*\\n\\n";
+                    
                     for (const key in s.order_data) {
                         const item = s.order_data[key];
-                        itemsHtml += `• ${item.qty}x ${item.name}<br>`;
-                        rawText += `• ${item.qty}x ${item.name}\\n`;
+                        itemsHtml += "• " + item.qty + "x " + item.name + "<br>";
+                        waText += "• " + item.qty + "x " + item.name + "\\n";
                     }
-                    
-                    const waText = `🧾 *RECEIPT: ${store.businessName}*\\n${rawText}\\n*TOTAL: ${store.curr} ${formatMoney(s.total_amount)}*`;
+                    waText += "\\n*TOTAL: " + store.curr + " " + formatMoney(s.total_amount) + "*";
 
-                    return `
-                    <tr id="row-${s.id}">
-                        <td>${new Date(s.created_at).toLocaleDateString()}<br><small style="color:#666">${new Date(s.created_at).toLocaleTimeString()}</small></td>
-                        <td class="order-items">${itemsHtml}</td>
-                        <td class="badge-total">${store.curr} ${formatMoney(s.total_amount)}</td>
-                        <td class="no-print">
-                            <div style="display:flex;">
-                                <button class="btn-action btn-wa" onclick="sendWa('${encodeURIComponent(waText)}')">WA</button>
-                                <button class="btn-action btn-print" onclick="printSlip('${store.businessName}', '${itemsHtml}', '${store.curr}', '${formatMoney(s.total_amount)}')">SLIP</button>
-                                <button class="btn-action btn-delete" onclick="deleteOrder('${s.id}')">X</button>
-                            </div>
-                        </td>
-                    </tr>`;
+                    return '<tr id="row-' + s.id + '">' +
+                        '<td>' + new Date(s.created_at).toLocaleDateString() + '<br><small style="color:#666">' + new Date(s.created_at).toLocaleTimeString() + '</small></td>' +
+                        '<td class="order-items">' + itemsHtml + '</td>' +
+                        '<td class="badge-total">' + store.curr + ' ' + formatMoney(s.total_amount) + '</td>' +
+                        '<td class="no-print">' +
+                            '<div style="display:flex;">' +
+                                '<button class="btn-action btn-wa" onclick="sendWa(\'' + encodeURIComponent(waText) + '\')">WA</button>' +
+                                '<button class="btn-action btn-print" onclick="printSlip(\'' + store.businessName + '\', \'' + itemsHtml + '\', \'' + store.curr + '\', \'' + formatMoney(s.total_amount) + '\')">SLIP</button>' +
+                                '<button class="btn-action btn-delete" onclick="deleteOrder(\'' + s.id + '\')">X</button>' +
+                            '</div>' +
+                        '</td>' +
+                    '</tr>';
                 }).join('');
 
-                document.getElementById('totalRevenue').innerText = `${store.curr} ${formatMoney(revenue)}`;
+                document.getElementById('totalRevenue').innerText = store.curr + " " + formatMoney(revenue);
             } catch (err) { console.error(err); }
         }
 
         function printSlip(biz, items, curr, total) {
             const win = window.open('', '_blank');
-            win.document.write(`
-                <html>
-                <body style="font-family:monospace; padding:20px; width:280px;">
-                    <center><h3>${biz}</h3><p>${new Date().toLocaleString()}</p></center>
-                    <hr>
-                    <div style="font-size:12px;">${items}</div>
-                    <hr>
-                    <h4>TOTAL: ${curr} ${total}</h4>
-                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
-                </body>
-                </html>
-            `);
+            win.document.write('<html><body style="font-family:monospace; padding:30px; width:280px; text-align:center;">' +
+                '<h2>' + biz + '</h2><p>' + new Date().toLocaleString() + '</p><hr>' +
+                '<div style="text-align:left; font-size:14px;">' + items + '</div><hr>' +
+                '<h3>TOTAL: ' + curr + ' ' + total + '</h3>' +
+                '<script>window.onload = function() { window.print(); window.close(); }<\/script>' +
+                '</body></html>');
             win.document.close();
         }
 
         async function deleteOrder(id) {
-            if(!confirm("Remove order?")) return;
-            const res = await fetch(\`\${API}/sales/delete/\${id}\`, { method: 'DELETE' });
-            if(res.ok) loadDashboard();
+            if(!confirm("Are you sure?")) return;
+            try {
+                const res = await fetch(API + "/sales/delete/" + id, { method: 'DELETE' });
+                if(res.ok) {
+                    document.getElementById("row-" + id).remove();
+                    loadDashboard();
+                }
+            } catch (e) { alert("Delete failed"); }
         }
 
-        function sendWa(text) { window.open(\`https://wa.me/?text=\${text}\`, '_blank'); }
+        function sendWa(text) {
+            window.open("https://wa.me/?text=" + text, "_blank");
+        }
 
         loadDashboard();
     </script>
