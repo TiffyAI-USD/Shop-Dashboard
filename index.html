@@ -6,27 +6,32 @@
     <title>Owner Dashboard | Retail OS</title>
     <style>
         :root { --accent: #00d4ff; --bg: #0a0a0a; --card: #151515; --danger: #ff4d4d; --success: #25d366; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; padding: 20px; margin: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: #fff; padding: 20px; margin: 0; line-height: 1.4; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-        .biz-title { font-size: 1.8rem; font-weight: 800; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 30px; }
+        .biz-title { font-size: 1.8rem; font-weight: 900; margin: 0; letter-spacing: -1px; }
         
-        .stats-container { display: flex; gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #222; text-align: center; flex: 1; }
-        .stat-val { font-size: 2rem; font-weight: 900; color: var(--accent); }
-        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 5px; }
+        .stats-container { display: flex; gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #222; text-align: left; flex: 1; position: relative; overflow: hidden; }
+        .stat-val { font-size: 1.8rem; font-weight: 900; color: var(--accent); display: block; }
+        .stat-label { font-size: 0.65rem; color: #888; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
         
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid #222; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #1a1a1a; vertical-align: top; }
-        th { background: #111; color: #555; font-size: 0.75rem; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
+        th { background: #111; color: #555; font-size: 0.7rem; text-transform: uppercase; padding: 15px; text-align: left; font-weight: 800; border-bottom: 1px solid #222; }
+        td { padding: 15px; text-align: left; border-bottom: 1px solid #1a1a1a; vertical-align: middle; }
         
-        .btn-action { border: none; padding: 10px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 0.75rem; margin-right: 5px; }
-        .btn-wa { background: var(--success); color: #fff; }
-        .btn-print { background: #fff; color: #000; }
+        /* This prevents the "ZAR 1 899" from stacking */
+        .price-col { color: #00ff00; font-weight: 900; font-family: monospace; font-size: 1.1rem; white-space: nowrap; padding-right: 20px; }
+        
+        .btn-action { border: none; padding: 10px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 0.7rem; transition: 0.2s; }
+        .btn-wa { background: var(--success); color: #fff; margin-right: 5px; }
+        .btn-print { background: #fff; color: #000; margin-right: 5px; }
         .btn-delete { background: var(--danger); color: #fff; }
+        .btn-action:hover { opacity: 0.8; transform: translateY(-1px); }
         
-        .badge-total { color: #00ff00; font-weight: 900; font-family: monospace; font-size: 1.1rem; }
-        .order-items { font-size: 0.85rem; color: #aaa; line-height: 1.5; }
+        .order-items { font-size: 0.85rem; color: #aaa; }
+        .date-cell { font-size: 0.9rem; font-weight: bold; color: #eee; min-width: 100px; }
+        .date-cell small { color: #555; font-weight: normal; font-size: 0.75rem; }
 
         @media print { .no-print { display: none; } body { background: #fff; color: #000; } }
     </style>
@@ -36,33 +41,33 @@
     <div class="header no-print">
         <div>
             <h1 class="biz-title" id="bizName">Loading Store...</h1>
-            <p id="bizHandle" style="color:var(--accent); margin: 5px 0 0 0; font-weight: bold;"></p>
+            <p id="bizHandle" style="color:var(--accent); margin: 5px 0 0 0; font-weight: bold; font-size: 0.9rem;"></p>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-action btn-print" onclick="loadDashboard()">🔄 REFRESH</button>
-            <button class="btn-action btn-print" onclick="window.print()">🖨️ LIST</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-action btn-print" onclick="loadDashboard()">REFRESH</button>
+            <button class="btn-action btn-print" onclick="window.print()">LIST</button>
         </div>
     </div>
 
     <div class="stats-container no-print">
         <div class="stat-card">
-            <div class="stat-val" id="totalOrders">0</div>
-            <div class="stat-label">Total Orders</div>
+            <span class="stat-val" id="totalOrders">0</span>
+            <span class="stat-label">Total Orders</span>
         </div>
         <div class="stat-card">
-            <div class="stat-val" id="totalRevenue">0</div>
-            <div class="stat-label">Total Revenue</div>
+            <span class="stat-val" id="totalRevenue">0.00</span>
+            <span class="stat-label" id="revLabel">Total Revenue</span>
         </div>
     </div>
 
-    <h3 class="no-print">Recent Order Requests</h3>
+    <h3 class="no-print" style="font-size: 1rem; margin-bottom: 15px; color: #888;">Recent Order Requests</h3>
     <table>
         <thead>
             <tr>
-                <th width="140">Date</th>
+                <th>Date</th>
                 <th>Items Ordered</th>
                 <th>Total</th>
-                <th class="no-print" width="260">Actions</th>
+                <th class="no-print">Actions</th>
             </tr>
         </thead>
         <tbody id="orderTable"></tbody>
@@ -73,21 +78,21 @@
         const handle = params.get('s');
         const API = "https://webstore-api-m8sr.onrender.com/api";
 
-        // Space formatting: 1000.50 -> 1 000.50
         const formatMoney = (val) => {
             return parseFloat(val).toLocaleString('en-ZA', { 
                 minimumFractionDigits: 2, 
                 maximumFractionDigits: 2 
-            }).replace(/,/g, ' ');
+            }).replace(/,/g, ' '); 
         };
 
         async function loadDashboard() {
-            if(!handle) return alert("No store handle found in URL.");
+            if(!handle) return alert("Missing Store Handle");
             try {
                 const storeRes = await fetch(API + "/store/" + handle);
                 const store = await storeRes.json();
                 document.getElementById('bizName').innerText = store.businessName;
                 document.getElementById('bizHandle').innerText = "@" + handle;
+                document.getElementById('revLabel').innerText = store.curr + " Revenue";
 
                 const salesRes = await fetch(API + "/sales/" + handle);
                 const sales = await salesRes.json();
@@ -97,13 +102,14 @@
                 const table = document.getElementById('orderTable');
                 
                 if (sales.length === 0) {
-                    table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:#555;">No orders found yet.</td></tr>';
+                    table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:50px; color:#444;">No records found.</td></tr>';
                     document.getElementById('totalRevenue').innerText = store.curr + " 0.00";
                     return;
                 }
 
                 table.innerHTML = sales.map(s => {
-                    revenue += parseFloat(s.total_amount || 0);
+                    const amt = parseFloat(s.total_amount || 0);
+                    revenue += amt;
                     
                     let itemsHtml = "";
                     let waText = "*RECEIPT: " + store.businessName.toUpperCase() + "*\\n\\n";
@@ -113,51 +119,57 @@
                         itemsHtml += "• " + item.qty + "x " + item.name + "<br>";
                         waText += "• " + item.qty + "x " + item.name + "\\n";
                     }
-                    waText += "\\n*TOTAL: " + store.curr + " " + formatMoney(s.total_amount) + "*";
+                    waText += "\\n*TOTAL: " + store.curr + " " + formatMoney(amt) + "*";
 
-                    return '<tr id="row-' + s.id + '">' +
-                        '<td>' + new Date(s.created_at).toLocaleDateString() + '<br><small style="color:#666">' + new Date(s.created_at).toLocaleTimeString() + '</small></td>' +
-                        '<td class="order-items">' + itemsHtml + '</td>' +
-                        '<td class="badge-total">' + store.curr + ' ' + formatMoney(s.total_amount) + '</td>' +
-                        '<td class="no-print">' +
-                            '<div style="display:flex;">' +
-                                '<button class="btn-action btn-wa" onclick="sendWa(\'' + encodeURIComponent(waText) + '\')">WA</button>' +
-                                '<button class="btn-action btn-print" onclick="printSlip(\'' + store.businessName + '\', \'' + itemsHtml + '\', \'' + store.curr + '\', \'' + formatMoney(s.total_amount) + '\')">SLIP</button>' +
-                                '<button class="btn-action btn-delete" onclick="deleteOrder(\'' + s.id + '\')">X</button>' +
-                            '</div>' +
-                        '</td>' +
-                    '</tr>';
+                    return `<tr id="row-${s.id}">
+                        <td class="date-cell">${new Date(s.created_at).toLocaleDateString()}<br><small>${new Date(s.created_at).toLocaleTimeString()}</small></td>
+                        <td class="order-items">${itemsHtml}</td>
+                        <td class="price-col">${store.curr} ${formatMoney(amt)}</td>
+                        <td class="no-print">
+                            <div style="display:flex;">
+                                <button class="btn-action btn-wa" onclick="sendWa('${encodeURIComponent(waText)}')">WA</button>
+                                <button class="btn-action btn-print" onclick="printSlip('${store.businessName}', '${itemsHtml.replace(/'/g, "\\'")}', '${store.curr}', '${formatMoney(amt)}')">SLIP</button>
+                                <button class="btn-action btn-delete" onclick="deleteOrder('${s.id}')">X</button>
+                            </div>
+                        </td>
+                    </tr>`;
                 }).join('');
 
-                document.getElementById('totalRevenue').innerText = store.curr + " " + formatMoney(revenue);
+                document.getElementById('totalRevenue').innerText = formatMoney(revenue);
             } catch (err) { console.error(err); }
         }
 
         function printSlip(biz, items, curr, total) {
             const win = window.open('', '_blank');
-            win.document.write('<html><body style="font-family:monospace; padding:30px; width:280px; text-align:center;">' +
-                '<h2>' + biz + '</h2><p>' + new Date().toLocaleString() + '</p><hr>' +
-                '<div style="text-align:left; font-size:14px;">' + items + '</div><hr>' +
-                '<h3>TOTAL: ' + curr + ' ' + total + '</h3>' +
-                '<script>window.onload = function() { window.print(); window.close(); }<\/script>' +
-                '</body></html>');
+            win.document.write(`
+                <html>
+                <body style="font-family:monospace; padding:30px; width:280px; text-align:center;">
+                    <h2 style="margin:0;">${biz}</h2>
+                    <p style="font-size:10px;">${new Date().toLocaleString()}</p>
+                    <hr style="border:1px dashed #000">
+                    <div style="text-align:left; font-size:13px; line-height:1.6;">${items}</div>
+                    <hr style="border:1px dashed #000">
+                    <h3 style="margin:10px 0;">TOTAL: ${curr} ${total}</h3>
+                    <p style="font-size:10px;">Thank you for your business!</p>
+                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
+                </body>
+                </html>
+            `);
             win.document.close();
         }
 
         async function deleteOrder(id) {
-            if(!confirm("Are you sure?")) return;
+            if(!confirm("Remove this order?")) return;
             try {
                 const res = await fetch(API + "/sales/delete/" + id, { method: 'DELETE' });
                 if(res.ok) {
                     document.getElementById("row-" + id).remove();
                     loadDashboard();
                 }
-            } catch (e) { alert("Delete failed"); }
+            } catch (e) { alert("Error"); }
         }
 
-        function sendWa(text) {
-            window.open("https://wa.me/?text=" + text, "_blank");
-        }
+        function sendWa(text) { window.open("https://wa.me/?text=" + text, "_blank"); }
 
         loadDashboard();
     </script>
